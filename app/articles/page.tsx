@@ -1,10 +1,10 @@
-import DashboardPage from "@/src/screens/dashboard/page"
+import ArticlesPage from "@/src/screens/articles/page"
 import MainLayout from "@/app/main"
 
 export default function Page() {
   return (
     <MainLayout>
-      <DashboardPage />
+      <ArticlesPage />
     </MainLayout>
   )
 }
