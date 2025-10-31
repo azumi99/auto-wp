@@ -1,156 +1,128 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import * as React from "react"
 import { IconLoader2 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { createWebsite, updateWebsite, getCompanies } from "@/src/lib/websites/actions"
-import type { Website, WebsiteFormData } from "@/src/lib/websites/types"
+import { Website } from "@/src/lib/websites/types"
+import { createWebsiteClient, updateWebsiteClient } from "@/src/lib/websites/client-actions"
+import { useRouter } from "next/navigation"
 
 interface WebsiteFormProps {
-  website?: Website | null
-  onSuccess: () => void
+    website?: Website | null
+    onClose: () => void
+    onSuccess?: () => void
 }
 
-export function WebsiteForm({ website, onSuccess }: WebsiteFormProps) {
-  const [loading, setLoading] = useState(false)
-  const [companies, setCompanies] = useState<any[]>([])
-  const [formData, setFormData] = useState({
-    name: website?.name || "",
-    url: website?.url || "",
-    description: website?.description || "",
-    company_id: website?.company_id || "",
-    status: website?.status || "active",
-  })
+export function WebsiteForm({ website, onClose, onSuccess }: WebsiteFormProps) {
+    const router = useRouter()
+    const [submitting, setSubmitting] = React.useState(false)
+    const [formData, setFormData] = React.useState<Partial<Website>>({
+        name: website?.name || "",
+        url: website?.url || "",
+        wp_username: website?.wp_username || "",
+        wp_password: website?.wp_password || "",
+        wp_token: website?.wp_token || null,
+    })
 
-  useEffect(() => {
-    loadCompanies()
-  }, [])
-
-  const loadCompanies = async () => {
-    try {
-      const data = await getCompanies()
-      setCompanies(data)
-      if (data.length > 0 && !formData.company_id) {
-        setFormData(prev => ({ ...prev, company_id: data[0].id }))
-      }
-    } catch (error: any) {
-      toast.error("Failed to load companies")
+    const handleSubmit = async () => {
+        console.log('handleSubmit called with website:', website, 'and formData:', formData)
+        try {
+            setSubmitting(true)
+            if (website) {
+                console.log('Calling updateWebsiteClient with id:', website.id)
+                await updateWebsiteClient(website.id, formData)
+                console.log('updateWebsiteClient completed successfully')
+                // Success toast is handled in the client action
+            } else {
+                console.log('Calling createWebsiteClient with formData:', formData)
+                await createWebsiteClient(formData)
+                console.log('createWebsiteClient completed successfully')
+                // Success toast is handled in the client action
+            }
+            onClose()
+            if (onSuccess) {
+                onSuccess()
+            }
+            // Refresh to ensure UI updates
+            router.refresh()
+        } catch (error) {
+            console.error("Error saving website:", error)
+            toast.error("Failed to save website")
+        } finally {
+            setSubmitting(false)
+        }
     }
-  }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!formData.name || !formData.url || !formData.company_id) {
-      toast.error("Please fill in all required fields")
-      return
-    }
-
-    try {
-      setLoading(true)
-      if (website) {
-        await updateWebsite(website.id, formData)
-        toast.success("Website updated successfully")
-      } else {
-        await createWebsite(formData)
-        toast.success("Website created successfully")
-      }
-      onSuccess()
-    } catch (error: any) {
-      toast.error(error.message || "Failed to save website")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="company_id">Company *</Label>
-        <Select
-          value={formData.company_id}
-          onValueChange={(value) => setFormData({ ...formData, company_id: value })}
-          disabled={loading || !!website}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select company" />
-          </SelectTrigger>
-          <SelectContent>
-            {companies.map((company) => (
-              <SelectItem key={company.id} value={company.id}>
-                {company.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="name">Website Name *</Label>
-        <Input
-          id="name"
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          placeholder="My Awesome Website"
-          required
-          disabled={loading}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="url">Website URL *</Label>
-        <Input
-          id="url"
-          type="url"
-          value={formData.url}
-          onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-          placeholder="https://example.com"
-          required
-          disabled={loading}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          placeholder="Brief description of the website"
-          rows={3}
-          disabled={loading}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="status">Status</Label>
-        <Select
-          value={formData.status}
-          onValueChange={(value) => setFormData({ ...formData, status: value as WebsiteFormData["status"] })}
-          disabled={loading}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-            <SelectItem value="maintenance">Maintenance</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="flex justify-end gap-2 pt-4">
-        <Button type="submit" disabled={loading}>
-          {loading && <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {website ? "Update Website" : "Create Website"}
-        </Button>
-      </div>
-    </form>
-  )
+    return (
+        <div className="grid gap-4 p-4">
+            <div className="grid gap-2">
+                <Label htmlFor="name">Website Name *</Label>
+                <Input
+                    id="name"
+                    placeholder="My Awesome Blog"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                />
+            </div>
+            <div className="grid gap-2">
+                <Label htmlFor="url">Website URL *</Label>
+                <Input
+                    id="url"
+                    type="url"
+                    placeholder="https://my-awesome-blog.com"
+                    value={formData.url}
+                    onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                    required
+                />
+            </div>
+            <div className="grid gap-2">
+                <Label htmlFor="wp_username">WordPress Username *</Label>
+                <Input
+                    id="wp_username"
+                    placeholder="wordpress_user"
+                    value={formData.wp_username || ""}
+                    onChange={(e) => setFormData({ ...formData, wp_username: e.target.value })}
+                    required
+                />
+            </div>
+            <div className="grid gap-2">
+                <Label htmlFor="wp_password">WordPress Password *</Label>
+                <Input
+                    id="wp_password"
+                    type="password"
+                    placeholder="WordPress application password"
+                    value={formData.wp_password || ""}
+                    onChange={(e) => setFormData({ ...formData, wp_password: e.target.value })}
+                    required
+                />
+            </div>
+            <div className="grid gap-2">
+                <Label htmlFor="wp_token">WordPress JWT/API Token</Label>
+                <Input
+                    id="wp_token"
+                    type="password"
+                    placeholder="Optional JWT token"
+                    value={formData.wp_token || ""}
+                    onChange={(e) => setFormData({ ...formData, wp_token: e.target.value })}
+                />
+            </div>
+            <div className="flex justify-end gap-2">
+                <Button
+                    variant="outline"
+                    onClick={onClose}
+                    disabled={submitting}
+                >
+                    Cancel
+                </Button>
+                <Button onClick={handleSubmit} disabled={submitting || !formData.name || !formData.url}>
+                    {submitting && <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {website ? "Save Changes" : "Create Website"}
+                </Button>
+            </div>
+        </div>
+    )
 }

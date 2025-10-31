@@ -6,6 +6,7 @@ import {
   IconLogout,
   IconNotification,
   IconUserCircle,
+  IconSettings,
 } from "@tabler/icons-react"
 
 import {
@@ -28,6 +29,9 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { createClient } from "@/lib/supabaseClient"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 export function NavUser({
   user,
@@ -39,6 +43,39 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const router = useRouter()
+  const supabase = createClient()
+  
+  const handleLogout = async () => {
+    try {
+      // Clear any localStorage data that might be storing user session info
+      // This is application-specific - clear any custom data you store
+      localStorage.clear(); // Or selectively clear specific keys
+      
+      // If you have specific keys to clear, you can do:
+      // localStorage.removeItem('user_preferences');
+      // localStorage.removeItem('auth_token');
+      // etc.
+      
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to logout');
+      }
+      
+      toast.success("Logged out successfully");
+      router.push("/login");
+      router.refresh();
+    } catch (error) {
+      console.error("Error logging out:", error);
+      toast.error("Failed to logout");
+    }
+  }
 
   return (
     <SidebarMenu>
@@ -86,11 +123,21 @@ export function NavUser({
             <DropdownMenuGroup>
               <DropdownMenuItem>
                 <IconUserCircle />
-                Account
+                <a href="/profile" className="flex items-center w-full">
+                  Profile
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <IconSettings />
+                <a href="/settings" className="flex items-center w-full">
+                  Settings
+                </a>
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <IconCreditCard />
-                Billing
+                <a href="/pricing" className="flex items-center w-full">
+                  Upgrade Plan
+                </a>
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <IconNotification />
@@ -98,7 +145,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               <IconLogout />
               Log out
             </DropdownMenuItem>

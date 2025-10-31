@@ -1,10 +1,13 @@
-import WebsitesPage from "@/src/screens/websites/page"
-import MainLayout from "@/app/main"
+import WebsitesPage from "@/src/screens/websites/page";
+import MainLayout from "@/app/main";
 
-export default function Page() {
-  return (
-    <MainLayout>
-      <WebsitesPage />
-    </MainLayout>
-  )
+const Page = () => {
+    return (
+        <MainLayout>
+            <WebsitesPage />
+        </MainLayout>
+    )
+
 }
+
+export default Page

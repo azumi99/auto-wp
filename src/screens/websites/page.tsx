@@ -1,228 +1,445 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { IconPlus, IconWorldWww, IconRefresh, IconDots, IconPencil, IconTrash, IconCheck, IconX } from "@tabler/icons-react"
+import * as React from "react"
+import {
+    IconPlus,
+    IconEdit,
+    IconTrash,
+    IconDots,
+    IconWorldWww,
+    IconSearch,
+    IconLoader2,
+    IconWorld,
+    IconWifi,
+    IconWifiOff,
+} from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
+import { getWebsitesClient } from "@/src/lib/websites/client-actions"
+import { deleteWebsiteClient } from "@/src/lib/websites/client-actions"
 import { toast } from "sonner"
-import { getWebsites, deleteWebsite } from "@/src/lib/websites/actions"
-import { WebsiteForm } from "@/src/screens/websites/website-form"
-import type { Website } from "@/src/lib/websites/types"
-
+import { Website } from "@/src/lib/websites/types"
+import { WebsiteForm } from "./website-form"
+import { useWebsitesRealtime } from "@/hooks/use-supabase-realtime"
+import { createClient } from "@/lib/supabaseClient"
+import { supabase } from "@/lib/supabase"
 export default function WebsitesPage() {
-  const [websites, setWebsites] = useState<Website[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedWebsite, setSelectedWebsite] = useState<Website | null>(null)
-  const [dialogOpen, setDialogOpen] = useState(false)
+    const [websites, setWebsites] = React.useState<Website[]>([])
+    const [loading, setLoading] = React.useState(true)
+    const [userId, setUserId] = React.useState<string | null>(null)
+    const [searchQuery, setSearchQuery] = React.useState("")
+    const [isFormOpen, setIsFormOpen] = React.useState(false)
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false)
+    const [selectedWebsite, setSelectedWebsite] = React.useState<Website | null>(null)
+    const [submitting, setSubmitting] = React.useState(false)
 
-  const loadWebsites = async () => {
-    try {
-      setLoading(true)
-      const data = await getWebsites()
-      setWebsites(data)
-    } catch (error: any) {
-      toast.error(error.message || "Failed to load websites")
-    } finally {
-      setLoading(false)
+    // Initialize user and load data
+    React.useEffect(() => {
+        const initializeUser = async () => {
+            try {
+                const supabase = createClient()
+                const { data: { user } } = await supabase.auth.getUser()
+                if (user) {
+                    setUserId(user.id)
+                    loadData()
+                }
+            } catch (error) {
+                console.error('Error getting user:', error)
+                toast.error('Failed to authenticate')
+            }
+        }
+        initializeUser()
+    }, [])
+
+    const loadData = async () => {
+        try {
+            setLoading(true)
+            const websitesData = await getWebsitesClient()
+            setWebsites(websitesData)
+        } catch (error) {
+            console.error('Error loading data:', error)
+            toast.error('Failed to load data')
+        } finally {
+            setLoading(false)
+        }
     }
-  }
 
-  useEffect(() => {
-    loadWebsites()
-  }, [])
+    // Setup realtime subscription - this will fetch data and handle realtime updates
+    const { data: realtimeData, isConnected, error: realtimeError, loading: realtimeLoading } = useWebsitesRealtime(
+        userId || '',
+        undefined
+    )
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this website?")) return
+    // Use realtime data as primary source, fallback to initial data only during initial load
+    const currentWebsites = realtimeData || websites
+    const isLoading = loading || (realtimeLoading && !realtimeData)
 
-    try {
-      await deleteWebsite(id)
-      toast.success("Website deleted successfully")
-      loadWebsites()
-    } catch (error: any) {
-      toast.error(error.message || "Failed to delete website")
+    // Debug logging
+    React.useEffect(() => {
+        console.log('Websites state update:', {
+            realtimeDataCount: realtimeData?.length || 0,
+            initialDataCount: websites.length,
+            currentDataCount: currentWebsites.length,
+            isConnected,
+            isLoading
+        })
+    }, [realtimeData, websites, currentWebsites, isConnected, isLoading])
+
+    // Handle realtime connection errors
+    React.useEffect(() => {
+        if (realtimeError) {
+            console.error('Realtime connection error:', realtimeError)
+            toast.error(`Realtime updates unavailable: ${realtimeError.message}`)
+        }
+    }, [realtimeError])
+
+    // Debug realtime status
+    React.useEffect(() => {
+        console.log('Websites realtime status:', {
+            isConnected,
+            loading: realtimeLoading,
+            error: realtimeError?.message,
+            userId: userId || 'null',
+            dataCount: realtimeData?.length || 0
+        })
+    }, [isConnected, realtimeLoading, realtimeError, userId, realtimeData])
+
+    // Sort websites by created_at in descending order (newest first)
+    const sortedWebsites = React.useMemo(() => {
+        return [...currentWebsites].sort((a, b) =>
+            new Date(b.created_at || b.updated_at).getTime() - new Date(a.created_at || a.updated_at).getTime()
+        )
+    }, [currentWebsites])
+
+    const filteredWebsites = sortedWebsites.filter((website) =>
+        website.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        website.url.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+
+
+    // const handleDelete = async () => {
+    //     // if (!selectedWebsite) return
+    //     // console.log('handleDelete called for website:', selectedWebsite)
+
+    //     try {
+    //         // setSubmitting(true)
+    //         // console.log('Calling deleteWebsite with id:', selectedWebsite.id)
+    //         // const result = await deleteWebsite(selectedWebsite.id)
+    //         // console.log('deleteWebsite result:', result)
+    //         // toast.success('Website deleted successfully')
+    //         // setIsDeleteDialogOpen(false)
+    //         // setSelectedWebsite(null)
+
+    //         await supabase
+    //             .from('websites')
+    //             .delete()
+    //             .eq('id', selectedWebsite.id)
+    //             .eq('user_id', selectedWebsite.user_id)
+    //         // Data will be updated automatically via realtime subscription
+    //     } catch (error) {
+    //         console.error('Error deleting website:', error)
+    //         toast.error('Failed to delete website')
+    //     } finally {
+    //         setSubmitting(false)
+    //     }
+    // }
+
+    const supabase = createClient()
+
+    const handleDelete = async () => {
+        if (!selectedWebsite) {
+            toast.error('No website selected.')
+            return
+        }
+
+        try {
+            setSubmitting(true)
+            console.log('Calling deleteWebsiteClient with id:', selectedWebsite.id)
+            const result = await deleteWebsiteClient(selectedWebsite.id)
+            console.log('deleteWebsiteClient result:', result)
+            // Success toast is handled in the client action
+            setIsDeleteDialogOpen(false)
+            setSelectedWebsite(null)
+            // Data will be updated automatically via realtime subscription
+        } catch (error) {
+            console.error('Error deleting website:', error)
+            // Error toast is handled in the client action
+        } finally {
+            setSubmitting(false)
+        }
     }
-  }
-
-  const handleEdit = (website: Website) => {
-    setSelectedWebsite(website)
-    setDialogOpen(true)
-  }
-
-  const handleAdd = () => {
-    setSelectedWebsite(null)
-    setDialogOpen(true)
-  }
-
-  const handleSuccess = () => {
-    setDialogOpen(false)
-    setSelectedWebsite(null)
-    loadWebsites()
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "active": return "bg-green-500/10 text-green-500"
-      case "inactive": return "bg-gray-500/10 text-gray-500"
-      case "maintenance": return "bg-yellow-500/10 text-yellow-500"
-      default: return "bg-gray-500/10 text-gray-500"
+    const openEditDialog = (website: Website) => {
+        setSelectedWebsite(website)
+        setIsFormOpen(true)
     }
-  }
 
-  const getHealthIcon = (status: string) => {
-    switch (status) {
-      case "healthy": return <IconCheck className="h-4 w-4 text-green-500" />
-      case "warning": return <span className="text-yellow-500">!</span>
-      case "error": return <IconX className="h-4 w-4 text-red-500" />
-      default: return <span className="text-gray-500">?</span>
+    const openDeleteDialog = (website: Website) => {
+        setSelectedWebsite(website)
+        setIsDeleteDialogOpen(true)
     }
-  }
 
-  return (
-    <div className="flex flex-col gap-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Websites</h1>
-          <p className="text-muted-foreground">
-            Manage your WordPress websites
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={loadWebsites}>
-            <IconRefresh className="h-4 w-4" />
-          </Button>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={handleAdd}>
-                <IconPlus className="h-4 w-4 mr-2" />
-                Add Website
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>
-                  {selectedWebsite ? "Edit Website" : "Add New Website"}
-                </DialogTitle>
-                <DialogDescription>
-                  {selectedWebsite
-                    ? "Update website information below"
-                    : "Add a new WordPress website to manage"}
-                </DialogDescription>
-              </DialogHeader>
-              <WebsiteForm
-                website={selectedWebsite}
-                onSuccess={handleSuccess}
-              />
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+    const getStatusBadge = (status: string) => {
+        const variants: Record<string, any> = {
+            active: { variant: "default", label: "Active" },
+            inactive: { variant: "secondary", label: "Inactive" },
+            maintenance: { variant: "destructive", label: "Maintenance" },
+        }
+        const config = variants[status] || variants.active
+        return <Badge variant={config.variant}>{config.label}</Badge>
+    }
 
-      <div className="grid gap-4">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {loading ? (
-            Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i} className="animate-pulse">
-                <CardHeader>
-                  <div className="h-6 bg-muted rounded w-3/4" />
-                  <div className="h-4 bg-muted rounded w-1/2" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="h-4 bg-muted rounded" />
-                    <div className="h-4 bg-muted rounded w-5/6" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          ) : websites.length === 0 ? (
-            <Card className="col-span-full">
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <IconWorldWww className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No websites yet</h3>
-                <p className="text-muted-foreground mb-4">
-                  Get started by adding your first WordPress website
-                </p>
-                <Button onClick={handleAdd}>
-                  <IconPlus className="h-4 w-4 mr-2" />
-                  Add Website
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            websites.map((website) => (
-              <Card key={website.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        {getHealthIcon(website.health_status)}
-                        {website.name}
-                      </CardTitle>
-                      <CardDescription className="mt-1">
-                        <a
-                          href={website.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="hover:underline"
-                        >
-                          {website.url}
-                        </a>
-                      </CardDescription>
+    const activeWebsites = currentWebsites.filter(w => w.status === 'active').length
+    const inactiveWebsites = currentWebsites.filter(w => w.status === 'inactive').length
+
+    if (isLoading) {
+        return (
+            <div className="flex flex-1 items-center justify-center min-h-[400px]">
+                <div className="flex flex-col items-center gap-2">
+                    <IconLoader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Loading websites...</p>
+                    {realtimeLoading && (
+                        <p className="text-xs text-muted-foreground">Connecting to realtime updates...</p>
+                    )}
+                </div>
+            </div>
+        )
+    }
+
+    return (
+        <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                        <h1 className="text-3xl font-bold tracking-tight">Websites</h1>
+                        <div className="flex items-center gap-1">
+                            {isConnected ? (
+                                <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                                    <IconWifi className="w-3 h-3 mr-1" />
+                                    Live
+                                </Badge>
+                            ) : (
+                                <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">
+                                    <IconWifiOff className="w-3 h-3 mr-1" />
+                                    Offline
+                                </Badge>
+                            )}
+                        </div>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <IconDots className="h-4 w-4" />
+                    <p className="text-sm text-muted-foreground">
+                        Manage your WordPress websites and their settings
+                    </p>
+                </div>
+                <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                    <DialogTrigger asChild>
+                        <Button onClick={() => setSelectedWebsite(null)}>
+                            <IconPlus className="mr-2 h-4 w-4" />
+                            Add Website
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(website)}>
-                          <IconPencil className="h-4 w-4 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(website.id)}
-                          className="text-red-600"
-                        >
-                          <IconTrash className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[500px]">
+                        <DialogHeader>
+                            <DialogTitle>{selectedWebsite ? "Edit Website" : "Create New Website"}</DialogTitle>
+                            <DialogDescription>
+                                {selectedWebsite ? "Update website information and settings" : "Add a new website to manage content"}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <WebsiteForm website={selectedWebsite} onClose={() => setIsFormOpen(false)} />
+                    </DialogContent>
+                </Dialog>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                            Total Websites
+                        </CardTitle>
+                        <IconWorldWww className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{currentWebsites.length}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Active Websites</CardTitle>
+                        <IconWorldWww className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{activeWebsites}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Inactive Websites</CardTitle>
+                        <IconWorldWww className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{inactiveWebsites}</div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <Card>
+                <CardHeader>
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div className="space-y-1">
+                            <CardTitle>All Websites</CardTitle>
+                            <CardDescription>
+                                {filteredWebsites.length} {filteredWebsites.length === 1 ? 'website' : 'websites'} found
+                            </CardDescription>
+                        </div>
+                        <div className="relative w-full md:w-64">
+                            <IconSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Search websites..."
+                                className="pl-8"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {website.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {website.description}
-                      </p>
-                    )}
-                    <div className="flex items-center justify-between">
-                      <Badge className={getStatusColor(website.status)}>
-                        {website.status}
-                      </Badge>
-                      {website.wordpress_version && (
-                        <span className="text-xs text-muted-foreground">
-                          WP {website.wordpress_version}
-                        </span>
-                      )}
-                    </div>
-                    {website.last_health_check && (
-                      <p className="text-xs text-muted-foreground">
-                        Last check: {new Date(website.last_health_check).toLocaleString()}
-                      </p>
-                    )}
-                  </div>
+                    <ScrollArea className="w-full">
+                        <div className="space-y-4">
+                            {filteredWebsites.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-center">
+                                    <IconWorldWww className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                                    <h3 className="text-lg font-semibold">No websites found</h3>
+                                    <p className="text-sm text-muted-foreground mt-2">
+                                        {searchQuery ? 'Try adjusting your search' : 'Get started by creating your first website'}
+                                    </p>
+                                    {!searchQuery && (
+                                        <Button className="mt-4" onClick={() => setIsFormOpen(true)}>
+                                            <IconPlus className="mr-2 h-4 w-4" />
+                                            Add Website
+                                        </Button>
+                                    )}
+                                </div>
+                            ) : (
+                                filteredWebsites.map((website) => (
+                                    <Card key={website.id}>
+                                        <CardContent className="flex items-center justify-between p-6">
+                                            <div className="flex items-center gap-4 flex-1">
+                                                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                                                    <IconWorldWww className="h-6 w-6 text-primary" />
+                                                </div>
+                                                <div className="flex-1 space-y-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <h3 className="font-semibold">{website.name}</h3>
+                                                        {getStatusBadge(website.status || 'active')}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                        <a
+                                                            href={website.url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-blue-600 hover:underline inline-flex items-center gap-1"
+                                                        >
+                                                            <IconWorld className="h-3 w-3" />
+                                                            {website.url.replace(/^https?:\/\//, "")}
+                                                        </a>
+                                                    </div>
+                                                    <div className="text-xs text-muted-foreground">
+                                                        <span>Created {new Date(website.created_at).toLocaleDateString()}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon">
+                                                        <IconDots className="h-4 w-4" />
+                                                        <span className="sr-only">Actions</span>
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem onClick={() => openEditDialog(website)}>
+                                                        <IconEdit className="mr-2 h-4 w-4" />
+                                                        Edit
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        className="text-destructive focus:text-destructive"
+                                                        onClick={() => openDeleteDialog(website)}
+                                                    >
+                                                        <IconTrash className="mr-2 h-4 w-4" />
+                                                        Delete
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </CardContent>
+                                    </Card>
+                                ))
+                            )}
+                        </div>
+                        <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
                 </CardContent>
-              </Card>
-            ))
-          )}
+            </Card>
+
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will permanently delete{" "}
+                            <span className="font-semibold text-foreground">{selectedWebsite?.name}</span> and
+                            all associated data. This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setSelectedWebsite(null)} disabled={submitting}>
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDelete}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            disabled={submitting}
+                        >
+                            {submitting && <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Delete Website
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
-      </div>
-    </div>
-  )
+    )
 }

@@ -1,10 +1,13 @@
-import ArticlesPage from "@/src/screens/articles/page"
-import MainLayout from "@/app/main"
+import ArticlePage from "@/src/screens/articles/page";
+import MainLayout from "@/app/main";
 
-export default function Page() {
-  return (
-    <MainLayout>
-      <ArticlesPage />
-    </MainLayout>
-  )
+const ArticlesPage = () => {
+    return (
+        <MainLayout>
+            <ArticlePage />
+        </MainLayout>
+    )
+
 }
+
+export default ArticlesPage

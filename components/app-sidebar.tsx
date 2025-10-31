@@ -53,12 +53,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: IconLayoutDashboard,
         isActive: pathname === "/dashboard",
       },
+
       {
-        title: "Companies",
-        url: "/companies",
-        icon: IconBuilding,
-        isActive: pathname.startsWith("/companies"),
+        title: "Monitoring",
+        url: "/dashboard/monitoring",
+        icon: IconActivity,
+        isActive: pathname === "/dashboard/monitoring",
       },
+      {
+        title: "Logs",
+        url: "/dashboard/logs",
+        icon: IconLogs,
+        isActive: pathname === "/dashboard/logs",
+      },
+
       {
         title: "Websites",
         url: "/websites",
@@ -80,63 +88,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     ],
     navManagement: [
       {
-        name: "Credentials",
-        url: "/credentials",
-        icon: IconKey,
-        isActive: pathname.startsWith("/credentials"),
-      },
-      {
         name: "AI Prompts",
-        url: "/prompts",
+        url: "/ai-prompts",
         icon: IconFileAi,
-        isActive: pathname.startsWith("/prompts"),
+        isActive: pathname.startsWith("/ai-prompts"),
       },
       {
-        name: "Execution Logs",
-        url: "/logs",
-        icon: IconLogs,
-        isActive: pathname.startsWith("/logs"),
-      },
-    ],
-    navAnalytics: [
-      {
-        name: "Analytics",
-        url: "/analytics",
-        icon: IconChartBar,
-        isActive: pathname.startsWith("/analytics"),
+        name: "Published Articles",
+        url: "/published-articles",
+        icon: IconBrandWordpress,
+        isActive: pathname.startsWith("/published-articles"),
       },
       {
-        name: "Activity Feed",
-        url: "/activity",
-        icon: IconActivity,
-        isActive: pathname.startsWith("/activity"),
-      },
-      {
-        name: "Notifications",
-        url: "/notifications",
-        icon: IconNotification,
-        isActive: pathname.startsWith("/notifications"),
-      },
-    ],
-    navSecondary: [
-      {
-        title: "n8n Webhooks",
+        name: "n8n Webhooks",
         url: "/webhooks",
         icon: IconWebhook,
         isActive: pathname.startsWith("/webhooks"),
       },
-      {
-        title: "WordPress",
-        url: "/wordpress",
-        icon: IconBrandWordpress,
-        isActive: pathname.startsWith("/wordpress"),
-      },
-      {
-        title: "Team",
-        url: "/team",
-        icon: IconUsers,
-        isActive: pathname.startsWith("/team"),
-      },
+    ],
+    navSecondary: [
       {
         title: "Settings",
         url: "/settings",
@@ -148,12 +118,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         url: "/help",
         icon: IconHelp,
         isActive: pathname.startsWith("/help"),
-      },
-      {
-        title: "Search",
-        url: "/search",
-        icon: IconSearch,
-        isActive: pathname.startsWith("/search"),
       },
     ],
   }
@@ -178,7 +142,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain items={data.navMain} />
         <NavDocuments items={data.navManagement} title="Management" />
-        <NavDocuments items={data.navAnalytics} title="Insights" />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

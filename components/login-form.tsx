@@ -18,7 +18,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { signIn, signUp, resetPassword } from "@/lib/auth"
+import { signIn, signUp, resetPassword, resendConfirmationEmail } from "@/lib/auth"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
@@ -43,11 +43,67 @@ export function LoginForm({
 
     try {
       setIsLoading(true)
-      await signIn(formData)
+      // Use the API route for login which handles session cookies properly
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        // Check if it's an email not confirmed error
+        if (data.error.includes('Email not confirmed') || data.error.includes('email not confirmed')) {
+          throw new Error('Email not confirmed. Please check your inbox for a confirmation email.')
+        }
+        throw new Error(data.error || 'Login failed')
+      }
+
       toast.success("Logged in successfully")
+
+      // Force a refresh to update the client-side auth state
+      router.refresh()
+      
+      // Redirect to dashboard or stored redirect URL
+      const redirectUrl = sessionStorage.getItem('redirectAfterLogin')
+      if (redirectUrl && redirectUrl !== '/login') {
+        sessionStorage.removeItem('redirectAfterLogin')
+        router.push(redirectUrl)
+      } else {
+        router.push('/dashboard')
+      }
     } catch (error: any) {
       console.error("Login error:", error)
-      toast.error(error.message || "Failed to login")
+      // Check if it's an email not confirmed error
+      if (error.message.includes('Email not confirmed') || error.message.includes('email not confirmed')) {
+        toast.error("Please check your email for a confirmation link before logging in.", {
+          action: {
+            label: "Resend Email",
+            onClick: () => handleResendConfirmation()
+          }
+        })
+      } else {
+        toast.error(error.message || "Failed to login")
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleResendConfirmation = async () => {
+    if (!formData.email) {
+      toast.error("Please enter your email address")
+      return
+    }
+
+    try {
+      setIsLoading(true)
+      await resendConfirmationEmail(formData.email)
+      toast.success("Confirmation email sent. Please check your inbox.")
+    } catch (error: any) {
+      console.error("Resend confirmation error:", error)
+      toast.error(error.message || "Failed to resend confirmation email")
     } finally {
       setIsLoading(false)
     }

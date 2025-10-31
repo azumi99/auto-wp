@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { formatChartDate } from "@/src/lib/utils/date"
 
 export const description = "Workflow performance chart"
 
@@ -136,11 +137,7 @@ export function ChartWorkflowPerformance() {
               tickMargin={8}
               minTickGap={32}
               tickFormatter={(value) => {
-                const date = new Date(value)
-                return date.toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })
+                return formatChartDate(value)
               }}
             />
             <ChartTooltip
@@ -148,10 +145,7 @@ export function ChartWorkflowPerformance() {
               content={
                 <ChartTooltipContent
                   labelFormatter={(value) => {
-                    return new Date(value).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })
+                    return formatChartDate(value)
                   }}
                   indicator="dot"
                 />
