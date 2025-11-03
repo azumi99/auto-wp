@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (updateError) {
-      console.error('❌ Error updating article from webhook:', updateError)
+      console.error(' Error updating article from webhook:', updateError)
       return NextResponse.json(
         {
           success: false,
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`✅ Successfully updated article ${article_id} status to ${articleStatus}`)
+    console.log(` Successfully updated article ${article_id} status to ${articleStatus}`)
 
     // Log the webhook call for debugging
     await supabase
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ Error processing n8n webhook:', error)
+    console.error(' Error processing n8n webhook:', error)
     return NextResponse.json(
       {
         success: false,

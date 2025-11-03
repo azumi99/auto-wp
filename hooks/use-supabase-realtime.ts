@@ -88,7 +88,7 @@ export function useSupabaseRealtime<T = any>(
         console.error(`Error fetching data for ${options.table}:`, fetchError)
         setError(fetchError)
       } else {
-        console.log(`✅ Fetched ${fetchedData?.length || 0} items for ${options.table}`)
+        console.log(` Fetched ${fetchedData?.length || 0} items for ${options.table}`)
         setData(fetchedData as T[])
       }
     } catch (err) {
@@ -159,7 +159,7 @@ export function useSupabaseRealtime<T = any>(
                         if (!isMounted.current) return currentData
                         const exists = currentData?.some((item) => (item as any).id === newArticle.id)
                         if (exists) return currentData
-                        console.log(`✅ INSERT: Added full joined article.`)
+                        console.log(` INSERT: Added full joined article.`)
                         return currentData ? [newArticle as T, ...currentData] : [newArticle as T]
                       })
                     })
@@ -168,7 +168,7 @@ export function useSupabaseRealtime<T = any>(
                   setData((currentData) => {
                     if (!isMounted.current) return currentData
                     const newData = currentData ? [payload.new as T, ...currentData] : [payload.new as T]
-                    console.log(`✅ INSERT: Added item. Total: ${newData.length}`)
+                    console.log(` INSERT: Added item. Total: ${newData.length}`)
                     return newData
                   })
                 }
@@ -198,7 +198,7 @@ export function useSupabaseRealtime<T = any>(
                         const updatedData = currentData?.map(item =>
                           (item as any).id === updatedArticle.id ? updatedArticle as T : item
                         ) || null
-                        console.log(`✅ UPDATE: Updated full joined article. Total: ${updatedData?.length || 0}`)
+                        console.log(` UPDATE: Updated full joined article. Total: ${updatedData?.length || 0}`)
                         return updatedData
                       })
                     })
@@ -207,7 +207,7 @@ export function useSupabaseRealtime<T = any>(
                   const updatedData = currentData?.map(item =>
                     (item as any).id === payload.new.id ? payload.new as T : item
                   ) || null
-                  console.log(`✅ UPDATE: Updated item. Total: ${updatedData?.length || 0}`)
+                  console.log(` UPDATE: Updated item. Total: ${updatedData?.length || 0}`)
                   return updatedData
                 }
                 return currentData
@@ -217,7 +217,7 @@ export function useSupabaseRealtime<T = any>(
                   (item as any).id !== payload.old.id
                 ) || null
                 console.log('halohalo', currentData?.filter(item => (item as any).id !== payload.old.id))
-                console.log(`✅ DELETE: Removed item. Total: ${filteredData?.length || 0}`)
+                console.log(` DELETE: Removed item. Total: ${filteredData?.length || 0}`)
                 return filteredData
 
               default:
@@ -232,12 +232,12 @@ export function useSupabaseRealtime<T = any>(
         console.log(`Subscription status for ${options.table}:`, status)
 
         if (status === 'SUBSCRIBED') {
-          console.log(`✅ Connected to ${options.table} realtime`)
+          console.log(` Connected to ${options.table} realtime`)
           setIsConnected(true)
           setError(null)
           setLastConnected(new Date())
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          // console.error(`❌ Connection error for ${options.table}:`, err)
+          // console.error(` Connection error for ${options.table}:`, err)
           setIsConnected(false)
           // setError(new Error(err?.message || 'Connection error'))
         } else if (status === 'CLOSED') {

@@ -51,10 +51,10 @@ export async function createWebsiteClient(formData: Partial<Website>) {
       website_url: formData.url
     });
 
-    toast.success('✅ Website created successfully!');
+    toast.success(' Website created successfully!');
     return data;
   } catch (err) {
-    console.error('❌ Unexpected error creating website (client):', err);
+    console.error(' Unexpected error creating website (client):', err);
     toast.error('Unexpected error creating website.');
     throw err; // Re-throw so calling function can handle the error state
   }
@@ -106,10 +106,10 @@ export async function updateWebsiteClient(id: string, formData: Partial<Website>
       website_name: formData.name
     });
 
-    toast.success('✅ Website updated successfully!');
+    toast.success(' Website updated successfully!');
     return data;
   } catch (err) {
-    console.error('❌ Unexpected error updating website (client):', err);
+    console.error(' Unexpected error updating website (client):', err);
     toast.error('Unexpected error updating website.');
     throw err; // Re-throw so calling function can handle the error state
   }
@@ -149,6 +149,63 @@ export async function deleteWebsiteClient(id: string) {
 
     console.log('deleteWebsiteClient: found website to delete:', websiteData);
 
+    // Check for related data before deletion
+    const { data: relatedData, error: relatedError } = await supabase
+      .from('articles')
+      .select('id')
+      .eq('website_id', id);
+
+    if (relatedError) {
+      console.error('Error checking related articles:', relatedError);
+      toast.error('Error checking website dependencies');
+      throw relatedError;
+    }
+
+    const { data: workflowData, error: workflowError } = await supabase
+      .from('workflows')
+      .select('id')
+      .eq('website_id', id);
+
+    if (workflowError) {
+      console.error('Error checking related workflows:', workflowError);
+      toast.error('Error checking website dependencies');
+      throw workflowError;
+    }
+
+    const { data: publishedData, error: publishedError } = await supabase
+      .from('published_articles')
+      .select('id')
+      .eq('website_id', id);
+
+    if (publishedError) {
+      console.error('Error checking related published articles:', publishedError);
+      toast.error('Error checking website dependencies');
+      throw publishedError;
+    }
+
+    // Build error message based on found dependencies
+    const dependencies = [];
+    if (relatedData && relatedData.length > 0) {
+      dependencies.push(`${relatedData.length} artikel${relatedData.length > 1 ? '' : ''}`);
+    }
+    if (workflowData && workflowData.length > 0) {
+      dependencies.push(`${workflowData.length} workflow${workflowData.length > 1 ? '' : ''}`);
+    }
+    if (publishedData && publishedData.length > 0) {
+      dependencies.push(`${publishedData.length} artikel terpublikasi${publishedData.length > 1 ? '' : ''}`);
+    }
+
+    if (dependencies.length > 0) {
+      const errorMessage = `Website tidak bisa dihapus karena masih memiliki: ${dependencies.join(', ')}. Hapus data terkait terlebih dahulu.`;
+      toast.warning(errorMessage);
+      return {
+        success: false,
+        error: errorMessage,
+        requiresAction: true,
+        dependencies: dependencies
+      };
+    }
+
     const { error } = await supabase
       .from('websites')
       .delete()
@@ -171,10 +228,10 @@ export async function deleteWebsiteClient(id: string) {
       website_url: websiteData?.url
     });
 
-    toast.success('✅ Website deleted successfully!');
+    toast.success(' Website deleted successfully!');
     return { success: true, id };
   } catch (err) {
-    console.error('❌ Unexpected error deleting website (client):', err);
+    console.error(' Unexpected error deleting website (client):', err);
     toast.error('Unexpected error deleting website.');
     throw err; // Re-throw so calling function can handle the error state
   }

@@ -3,7 +3,7 @@
 ## Masalah
 Setiap kali laptop sleep dan bangun kembali, muncul error:
 ```
-use-supabase-realtime.ts:156 ❌ Failed to subscribe to articles realtime updates
+use-supabase-realtime.ts:156  Failed to subscribe to articles realtime updates
 page.tsx:138 Realtime connection error: Error: Failed to subscribe to articles realtime updates
 ```
 
@@ -148,14 +148,14 @@ const {
 
 ## Features Improved Hook
 
-1. **✅ Auto-Reconnect** - Mencoba reconnect otomatis saat connection lost
-2. **✅ Exponential Backoff** - Delay reconnect untuk menghindari spam
-3. **✅ Sleep/Wake Detection** - Deteksi saat laptop sleep/bangun
-4. **✅ Network Monitoring** - Deteksi saat online/offline
-5. **✅ Manual Reconnect** - User bisa trigger reconnect manual
-6. **✅ Connection Status** - Informasi detail tentang connection status
-7. **✅ Error Recovery** - Robust error handling dan recovery
-8. **✅ Max Attempts** - Membatasi jumlah reconnection attempts
+1. ** Auto-Reconnect** - Mencoba reconnect otomatis saat connection lost
+2. ** Exponential Backoff** - Delay reconnect untuk menghindari spam
+3. ** Sleep/Wake Detection** - Deteksi saat laptop sleep/bangun
+4. ** Network Monitoring** - Deteksi saat online/offline
+5. ** Manual Reconnect** - User bisa trigger reconnect manual
+6. ** Connection Status** - Informasi detail tentang connection status
+7. ** Error Recovery** - Robust error handling dan recovery
+8. ** Max Attempts** - Membatasi jumlah reconnection attempts
 
 ## Testing
 
@@ -173,13 +173,13 @@ Hook improved akan menampilkan log seperti:
 ```
 Setting up realtime subscription for articles with filter: user_id=eq.xxx
 Realtime subscription status for articles: SUBSCRIBED
-✅ Successfully subscribed to articles realtime updates
+ Successfully subscribed to articles realtime updates
 
 // Setelah sleep:
 Page became visible, attempting to reconnect to articles
 Attempting reconnection 1/3 for articles
 Realtime subscription status for articles: SUBSCRIBED
-✅ Successfully subscribed to articles realtime updates
+ Successfully subscribed to articles realtime updates
 ```
 
 ## Troubleshooting

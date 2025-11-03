@@ -31,7 +31,7 @@ export async function createWorkflowClient(workflowData: Partial<Workflow>) {
     const { data, error } = await supabase
       .from('workflows')
       .insert(workflowInsert)
-      .select('id, user_id, name, description, is_active, created_at, updated_at')
+      .select('id, user_id, website_id, name, description, is_active, created_at, updated_at')
       .single();
 
     if (error) {
@@ -86,7 +86,7 @@ export async function updateWorkflowClient(id: string, workflowData: Partial<Wor
       .update(updateData)
       .eq('id', id)
       .eq('user_id', user.id)
-      .select('id, user_id, name, description, is_active, created_at, updated_at')
+      .select('id, user_id, website_id, name, description, is_active, created_at, updated_at')
       .single();
 
     if (error) {
@@ -127,7 +127,11 @@ export async function deleteWorkflowClient(id: string) {
   if (!user || authError) {
     console.error('Authentication error in deleteWorkflowClient:', authError);
     toast.error('Authentication error. Please try logging out and in again.');
-    throw new Error('Not authenticated');
+    return {
+      success: false,
+      error: 'Not authenticated',
+      requiresAction: false
+    };
   }
 
   try {
@@ -142,7 +146,11 @@ export async function deleteWorkflowClient(id: string) {
     if (selectError) {
       console.error('Error fetching workflow before deletion:', selectError);
       toast.error('Error preparing to delete workflow');
-      throw selectError;
+      return {
+        success: false,
+        error: 'Error preparing to delete workflow',
+        requiresAction: false
+      };
     }
 
     console.log('deleteWorkflowClient: found workflow to delete:', workflowData);
@@ -154,9 +162,12 @@ export async function deleteWorkflowClient(id: string) {
       .eq('user_id', user.id);
 
     if (error) {
-      console.error('Database error in deleteWorkflowClient:', error);
-      toast.error(`Failed to delete workflow: ${error.message}`);
-      throw error;
+      toast.error(`Gagal menghapus workflow: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+        requiresAction: false
+      };
     }
 
     console.log('deleteWorkflowClient: database delete successful');
@@ -168,12 +179,16 @@ export async function deleteWorkflowClient(id: string) {
       workflow_name: workflowData?.name
     });
 
-    toast.success('Workflow deleted successfully!');
+    toast.success('✅ Workflow berhasil dihapus!');
     return { success: true, id };
   } catch (err) {
     console.error('Unexpected error deleting workflow (client):', err);
-    toast.error('Unexpected error deleting workflow.');
-    throw err; // Re-throw so calling function can handle the error state
+    toast.error('Terjadi kesalahan yang tidak diharapkan saat menghapus workflow.');
+    return {
+      success: false,
+      error: 'Unexpected error occurred while deleting workflow',
+      requiresAction: false
+    };
   }
 }
 
@@ -194,7 +209,7 @@ export async function getWorkflowsClient(): Promise<Workflow[]> {
   try {
     const { data, error } = await supabase
       .from('workflows')
-      .select('id, user_id, name, description, is_active, created_at, updated_at')
+      .select('id, user_id, website_id, name, description, is_active, created_at, updated_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
@@ -229,7 +244,7 @@ export async function getWorkflowByIdClient(id: string): Promise<Workflow | null
   try {
     const { data, error } = await supabase
       .from('workflows')
-      .select('id, user_id, name, description, is_active, created_at, updated_at')
+      .select('id, user_id, website_id, name, description, is_active, created_at, updated_at')
       .eq('id', id)
       .eq('user_id', user.id)
       .single();
@@ -247,3 +262,4 @@ export async function getWorkflowByIdClient(id: string): Promise<Workflow | null
     return null;
   }
 }
+

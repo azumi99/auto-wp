@@ -17,7 +17,7 @@ export function RealtimeDiagnostic() {
 
   const addLog = (message: string, type: 'info' | 'success' | 'error' | 'warning' = 'info') => {
     const timestamp = new Date().toLocaleTimeString()
-    const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'
+    const icon = type === 'success' ? '' : type === 'error' ? '' : type === 'warning' ? '⚠️' : 'ℹ️'
     setLogs(prev => [...prev, `[${timestamp}] ${icon} ${message}`])
   }
 
@@ -50,9 +50,9 @@ export function RealtimeDiagnostic() {
       addLog('Testing Supabase connection...', 'info')
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
-        addLog('✅ Supabase connection successful', 'success')
+        addLog(' Supabase connection successful', 'success')
       } else {
-        addLog('❌ No active session', 'error')
+        addLog(' No active session', 'error')
         return
       }
 
@@ -65,7 +65,7 @@ export function RealtimeDiagnostic() {
         .limit(1)
 
       if (!userError && userData) {
-        addLog('✅ User data found in database', 'success')
+        addLog(' User data found in database', 'success')
       } else {
         addLog('⚠️ No user data found (might be normal for new users)', 'warning')
       }
@@ -115,9 +115,9 @@ export function RealtimeDiagnostic() {
               .eq('id', existingRecord.id)
 
             if (!error) {
-              addLog('✅ Database update sent, waiting for realtime event...', 'info')
+              addLog(' Database update sent, waiting for realtime event...', 'info')
             } else {
-              addLog(`❌ Database update failed: ${error.message}`, 'error')
+              addLog(` Database update failed: ${error.message}`, 'error')
             }
           } else {
             addLog('⚠️ No websites found to test with. Create a website first.', 'warning')
@@ -132,7 +132,7 @@ export function RealtimeDiagnostic() {
       }, 2000)
 
     } catch (error: any) {
-      addLog(`❌ Diagnostic failed: ${error.message}`, 'error')
+      addLog(` Diagnostic failed: ${error.message}`, 'error')
     }
   }
 
@@ -143,15 +143,15 @@ export function RealtimeDiagnostic() {
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
     if (supabaseUrl) {
-      addLog(`✅ Supabase URL: ${supabaseUrl}`, 'success')
+      addLog(` Supabase URL: ${supabaseUrl}`, 'success')
     } else {
-      addLog('❌ NEXT_PUBLIC_SUPABASE_URL not found', 'error')
+      addLog(' NEXT_PUBLIC_SUPABASE_URL not found', 'error')
     }
 
     if (supabaseKey) {
-      addLog(`✅ Supabase Anon Key: ${supabaseKey.substring(0, 10)}...`, 'success')
+      addLog(` Supabase Anon Key: ${supabaseKey.substring(0, 10)}...`, 'success')
     } else {
-      addLog('❌ NEXT_PUBLIC_SUPABASE_ANON_KEY not found', 'error')
+      addLog(' NEXT_PUBLIC_SUPABASE_ANON_KEY not found', 'error')
     }
   }
 

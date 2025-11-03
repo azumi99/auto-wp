@@ -148,6 +148,35 @@ export async function deleteArticleClient(id: string) {
 
     console.log('deleteArticleClient: found article to delete:', articleData);
 
+    // Check for related published articles before deletion
+    const { data: publishedData, error: publishedError } = await supabase
+      .from('published_articles')
+      .select('id, published_at')
+      .eq('article_id', id);
+
+    if (publishedError) {
+      console.error('Error checking related published articles:', publishedError);
+      toast.error('Error checking article dependencies');
+      throw publishedError;
+    }
+
+    // Warn user about cascade deletions
+    if (publishedData && publishedData.length > 0) {
+      const confirmMessage = `Artikel ini memiliki ${publishedData.length} artikel terpublikasi yang akan dihapus juga. Lanjutkan hapus?`;
+
+      // Show toast notification first
+      toast.warning(confirmMessage);
+
+      // Return a special response that the UI can handle for confirmation
+      return {
+        requiresConfirmation: true,
+        message: confirmMessage,
+        dependentCount: publishedData.length,
+        articleId: id,
+        articleTitle: articleData?.title
+      };
+    }
+
     const { error } = await supabase
       .from('articles')
       .delete()
@@ -321,11 +350,11 @@ export async function getArticlesClient(
       if (status && status !== 'all') {
         query = query.eq('status', status);
       }
-      
+
       if (generationType && generationType !== 'all') {
         query = query.eq('generation_type', generationType);
       }
-      
+
       if (search) {
         // Safer search implementation to avoid query construction errors
         const searchTerm = search.trim();
@@ -380,11 +409,11 @@ export async function getArticlesClient(
           if (status && status !== 'all') {
             fallbackQuery.eq('status', status);
           }
-          
+
           if (generationType && generationType !== 'all') {
             fallbackQuery.eq('generation_type', generationType);
           }
-          
+
           if (search) {
             const searchTerm = search.trim();
             if (searchTerm) {
@@ -503,5 +532,65 @@ export async function getArticleByIdClient(id: string): Promise<any | null> {
     console.error('Unexpected error fetching article by ID (client):', err);
     toast.error('Failed to load article');
     return null;
+  }
+}
+
+/**
+ * Force delete an article without confirmation
+ * This function should be called after user confirms deletion of dependent data
+ */
+export async function deleteArticleClientForce(id: string) {
+  console.log('deleteArticleClientForce called with id:', id);
+
+  const supabase = createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (!user || authError) {
+    console.error('Authentication error in deleteArticleClientForce:', authError);
+    toast.error('Authentication error. Please try logging out and in again.');
+    throw new Error('Not authenticated');
+  }
+
+  try {
+    // Get article data before deletion for logging
+    const { data: articleData, error: selectError } = await supabase
+      .from('articles')
+      .select('title')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (selectError) {
+      console.error('Error fetching article before deletion:', selectError);
+      toast.error('Error preparing to delete article');
+      throw selectError;
+    }
+
+    const { error } = await supabase
+      .from('articles')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Database error in deleteArticleClientForce:', error);
+      toast.error(`Failed to delete article: ${error.message}`);
+      throw error;
+    }
+
+    await logger.info('Article force deleted (client)', {
+      context: 'articles',
+      article_id: id,
+      user_id: user.id,
+      article_title: articleData?.title,
+      force_delete: true
+    });
+
+    toast.success(' Artikel dan data terkait berhasil dihapus!');
+    return { success: true, id };
+  } catch (err) {
+    console.error(' Unexpected error force deleting article (client):', err);
+    toast.error('Unexpected error deleting article.');
+    throw err;
   }
 }

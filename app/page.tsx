@@ -56,9 +56,9 @@ export default function Home() {
 
   const handleLogin = () => {
     router.push('/login');
-    toast.success('Silakan masuk ke halaman login', {
-      description: 'Silakan dialihkan ke dashboard Anda'
-    });
+    // toast.success('Silakan masuk ke halaman login', {
+    //   description: 'Silakan dialihkan ke dashboard Anda'
+    // });
   };
 
   const handleLogout = async () => {
@@ -81,6 +81,13 @@ export default function Home() {
     }, 3000);
     return () => clearInterval(interval);
   }, []);
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    // if (!loading && isAuthenticated) {
+    //   router.push('/dashboard');
+    // }
+  }, [loading, isAuthenticated, router]);
 
   const coreFeatures = [
     {

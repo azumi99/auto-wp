@@ -5,6 +5,12 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      auth: {
+        // Store tokens in cookies
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false
+      },
       realtime: {
         params: {
           eventsPerSecond: 10

@@ -144,7 +144,7 @@ export async function POST(request: Request) {
 
     if (!webhookResponse.ok) {
       const errorText = await webhookResponse.text()
-      console.error(`❌ [FORCE] Webhook failed: ${errorText}`)
+      console.error(` [FORCE] Webhook failed: ${errorText}`)
 
       // Update article status to failed
       await supabase
@@ -159,7 +159,7 @@ export async function POST(request: Request) {
     }
 
     const responseText = await webhookResponse.text()
-    console.log(`✅ [FORCE] Webhook success: ${responseText}`)
+    console.log(` [FORCE] Webhook success: ${responseText}`)
 
     // Update article status to posted
     await supabase

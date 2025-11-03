@@ -72,15 +72,9 @@ export async function updateCompany(id: string, formData: Partial<Company>) {
 }
 
 export async function deleteCompany(id: string) {
-  const { error } = await supabase
-    .from('companies')
-    .delete()
-    .eq('id', id)
-
-  if (error) throw error
-
-  revalidatePath('/companies')
-  return { success: true }
+  // Companies table has been dropped from the database schema
+  // This function is kept for backwards compatibility but should not be used
+  throw new Error('Company functionality has been deprecated. Companies table no longer exists in the database.')
 }
 
 export async function updateCompanyStatus(id: string, status: CompanyStatus) {

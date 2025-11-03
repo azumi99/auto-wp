@@ -2,7 +2,7 @@
 
 ## 🚨 Common Issues and Solutions
 
-### Issue 1: Status Shows "Offline" ❌
+### Issue 1: Status Shows "Offline" 
 
 **Symptoms:**
 - Realtime status badge shows "Offline" instead of "Live"
@@ -135,7 +135,7 @@ npx tsx scripts/check-realtime-setup.ts
 ### Step 4: Check Browser Console
 Look for these specific console messages:
 ```
-✅ Successfully subscribed to websites realtime updates
+ Successfully subscribed to websites realtime updates
 📨 Realtime update received for websites: {...}
 Websites updated via realtime: 1 items
 ```
@@ -185,4 +185,4 @@ If issues persist:
 - [ ] RLS policies allow realtime access
 - [ ] Supabase project has Realtime enabled
 
-If all these are checked ✅, realtime should work properly!
+If all these are checked , realtime should work properly!

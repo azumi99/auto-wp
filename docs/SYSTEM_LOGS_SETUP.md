@@ -47,17 +47,17 @@ ON CONFLICT DO NOTHING;
 ## Features Available
 
 ### After Setup:
-- ✅ Real-time log monitoring at `/dashboard/logs`
-- ✅ Filter by level (info/warn/error/debug)
-- ✅ Filter by source (scheduler/webhooks/articles)
-- ✅ Time range filtering
-- ✅ Search functionality
-- ✅ Auto-refresh every 30 seconds
-- ✅ Statistics dashboard
+-  Real-time log monitoring at `/dashboard/logs`
+-  Filter by level (info/warn/error/debug)
+-  Filter by source (scheduler/webhooks/articles)
+-  Time range filtering
+-  Search functionality
+-  Auto-refresh every 30 seconds
+-  Statistics dashboard
 
 ### Before Setup (Fallback):
-- ✅ System works with test logs automatically
-- ✅ All features available for testing
+-  System works with test logs automatically
+-  All features available for testing
 - ⚠️ Logs are in-memory only (reset on server restart)
 
 ## Using the Logger

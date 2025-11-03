@@ -127,7 +127,11 @@ export async function deletePublishedArticleClient(id: string) {
   if (!user || authError) {
     console.error('Authentication error in deletePublishedArticleClient:', authError);
     toast.error('Authentication error. Please try logging out and in again.');
-    throw new Error('Not authenticated');
+    return {
+      success: false,
+      error: 'Not authenticated',
+      requiresAction: false
+    };
   }
 
   try {
@@ -142,7 +146,11 @@ export async function deletePublishedArticleClient(id: string) {
     if (selectError) {
       console.error('Error fetching published article before deletion:', selectError);
       toast.error('Error preparing to delete published article');
-      throw selectError;
+      return {
+        success: false,
+        error: 'Error preparing to delete published article',
+        requiresAction: false
+      };
     }
 
     console.log('deletePublishedArticleClient: found article to delete:', articleData);
@@ -154,9 +162,12 @@ export async function deletePublishedArticleClient(id: string) {
       .eq('user_id', user.id);
 
     if (error) {
-      console.error('Database error in deletePublishedArticleClient:', error);
-      toast.error(`Failed to delete published article: ${error.message}`);
-      throw error;
+      toast.error(`Gagal menghapus artikel terpublikasi: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+        requiresAction: false
+      };
     }
 
     console.log('deletePublishedArticleClient: database delete successful');
@@ -168,12 +179,16 @@ export async function deletePublishedArticleClient(id: string) {
       article_title: articleData?.title
     });
 
-    toast.success('Published article deleted successfully!');
+    toast.success(' Artikel terpublikasi berhasil dihapus!');
     return { success: true, id };
   } catch (err) {
     console.error('Unexpected error deleting published article (client):', err);
-    toast.error('Unexpected error deleting published article.');
-    throw err; // Re-throw so calling function can handle the error state
+    toast.error('Terjadi kesalahan yang tidak diharapkan saat menghapus artikel terpublikasi.');
+    return {
+      success: false,
+      error: 'Unexpected error occurred while deleting published article',
+      requiresAction: false
+    };
   }
 }
 

@@ -1,6 +1,6 @@
 # Webhook Payload & Scheduler Fixes Applied
 
-## ✅ Issues Fixed
+##  Issues Fixed
 
 ### 1. **Username & Password WordPress Kosong**
 - **Root Cause**: Query database tidak mengambil `wp_username` dan `wp_password` dari tabel `websites`
@@ -19,17 +19,17 @@
 ## 📋 Files Modified
 
 ### Core Scheduler Files:
-1. `src/lib/articles/scheduled-articles.ts` - ✅ Fixed query & payload format
-2. `src/lib/articles/scheduled-articles-workflow.ts` - ✅ Already correct
-3. `app/api/force-process/route.ts` - ✅ Updated with credentials
-4. `src/middleware.ts` - ✅ Auto-start workflow scheduler
-5. `src/lib/scheduler/init.ts` - ❌ Disabled article scheduler
-6. `src/lib/scheduler/workflow-auto-start.ts` - ✅ Auto-start module
+1. `src/lib/articles/scheduled-articles.ts` -  Fixed query & payload format
+2. `src/lib/articles/scheduled-articles-workflow.ts` -  Already correct
+3. `app/api/force-process/route.ts` -  Updated with credentials
+4. `src/middleware.ts` -  Auto-start workflow scheduler
+5. `src/lib/scheduler/init.ts` -  Disabled article scheduler
+6. `src/lib/scheduler/workflow-auto-start.ts` -  Auto-start module
 
 ### New Files Added:
-1. `app/api/scheduler/auto-start/route.ts` - ✅ Auto-start API
-2. `scripts/scheduler-daemon.js` - ✅ Background daemon
-3. `scripts/check-website-credentials.js` - ✅ Credential checker
+1. `app/api/scheduler/auto-start/route.ts` -  Auto-start API
+2. `scripts/scheduler-daemon.js` -  Background daemon
+3. `scripts/check-website-credentials.js` -  Credential checker
 
 ## 🎯 Expected Webhook Payload Format
 
@@ -125,14 +125,14 @@ node scripts/scheduler-daemon.js health
 node scripts/scheduler-daemon.js daemon
 ```
 
-## ✅ Verification
+##  Verification
 
 After applying fixes:
 
-1. ✅ Webhook payload includes `website_username` and `website_password`
-2. ✅ Payload format uses `body` wrapper consistently
-3. ✅ Only workflow scheduler runs (no duplicates)
-4. ✅ Scheduler auto-starts without manual intervention
-5. ✅ Credentials are validated and warnings shown if empty
+1.  Webhook payload includes `website_username` and `website_password`
+2.  Payload format uses `body` wrapper consistently
+3.  Only workflow scheduler runs (no duplicates)
+4.  Scheduler auto-starts without manual intervention
+5.  Credentials are validated and warnings shown if empty
 
 The system should now send complete webhook payloads with WordPress credentials to n8n!

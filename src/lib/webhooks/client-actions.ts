@@ -155,6 +155,40 @@ export async function deleteWebhookClient(id: string) {
 
     console.log('deleteWebhookClient: found webhook to delete:', webhookData);
 
+    // Check for articles using this webhook before deletion
+    const { data: articleData, error: articleError } = await supabase
+      .from('articles')
+      .select('id, title')
+      .eq('webhook_id', id)
+      .limit(10); // Limit to avoid too much data
+
+    if (articleError) {
+      console.error('Error checking related articles:', articleError);
+      toast.error('Error checking webhook dependencies');
+      throw articleError;
+    }
+
+    // Warn user about articles that will lose webhook reference
+    if (articleData && articleData.length > 0) {
+      const confirmMessage = `Webhook ini digunakan oleh ${articleData.length} data lain. Data dari foreign ini akan kehilangan webhook integration?`;
+
+      // Show toast notification first
+      toast.warning(confirmMessage);
+
+      // Return a special response that the UI can handle for confirmation
+      return {
+        requiresConfirmation: true,
+        message: confirmMessage,
+        dependentCount: articleData.length,
+        webhookId: id,
+        webhookName: webhookData?.name,
+        affectedArticles: articleData.map(article => ({
+          id: article.id,
+          title: article.title
+        }))
+      };
+    }
+
     const { error } = await supabase
       .from('webhooks')
       .delete()
@@ -253,6 +287,66 @@ export async function getWebhookByIdClient(id: string): Promise<Webhook | null> 
     console.error('Unexpected error fetching webhook by ID (client):', err);
     toast.error('Failed to load webhook');
     return null;
+  }
+}
+
+/**
+ * Force delete a webhook without confirmation
+ * This function should be called after user confirms deletion
+ */
+export async function deleteWebhookClientForce(id: string) {
+  console.log('deleteWebhookClientForce called with id:', id);
+
+  const supabase = createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (!user || authError) {
+    console.error('Authentication error in deleteWebhookClientForce:', authError);
+    toast.error('Authentication error. Please try logging out and in again.');
+    throw new Error('Not authenticated');
+  }
+
+  try {
+    // Get webhook data before deletion for logging
+    const { data: webhookData, error: selectError } = await supabase
+      .from('webhooks')
+      .select('name')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (selectError) {
+      console.error('Error fetching webhook before deletion:', selectError);
+      toast.error('Error preparing to delete webhook');
+      throw selectError;
+    }
+
+    const { error } = await supabase
+      .from('webhooks')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Database error in deleteWebhookClientForce:', error);
+      toast.error(`Failed to delete webhook: ${error.message}`);
+      throw error;
+    }
+
+    await logger.info('Webhook force deleted (client)', {
+      context: 'webhooks',
+      webhook_id: id,
+      user_id: user.id,
+      webhook_name: webhookData?.name,
+      force_delete: true
+    });
+
+    toast.success(' Webhook berhasil dihapus!');
+    return { success: true, id };
+  } catch (err) {
+    console.error(' Unexpected error force deleting webhook (client):', err);
+    toast.error('Unexpected error deleting webhook.');
+    throw err;
   }
 }
 
